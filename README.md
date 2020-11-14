@@ -2,9 +2,9 @@
 <html>
 <body>
   <h1> The Underline District Blog </h1>
-</p>
-</p>
-<script>
-</script>
+  <p>
+    <a href=#> The Beginning </a>
+      </p>
+
 </body>
 </html>
