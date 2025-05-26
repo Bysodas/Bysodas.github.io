@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Bitec Inventory</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      padding: 20px;
+      max-width: 800px;
+      margin: auto;
+    }
+    .question {
+      margin-bottom: 20px;
+    }
+    label {
+      display: block;
+      margin: 5px 0;
+    }
+    .results {
+      margin-top: 40px;
+      padding: 20px;
+      border-top: 2px solid #ccc;
+    }
+    .trait-result {
+      margin-bottom: 30px;
+    }
+    .trait-result ul {
+      margin-top: 10px;
+    }
+  </style>
+</head>
+<body>
+
+<!-- Full Personality Test Section (Visible immediately) -->
+<div id="test-section">  
+  <h1>Bitec Inventory V3</h1>  
+  <form id="personalityTest">    
+    <!-- Questions will be inserted here -->  
+  </form>
+
+  <button id="submitTest">Submit</button>
+
+  <div id="results" class="results" style="display:none;"></div>
+</div>
+
+<script>
+let userName = "";
+let userEmail = "";
+
+const traits = ["Congenial", "Thorough", "Vivacious", "Perturbed", "Observance"];
+const questions = [  
+  "I try to make others feel included in conversations.",  
+  "I notice when someone feels uncomfortable and try to help.",  
+  "I often offer help without being asked.",  
+  "I enjoy doing small favors for others.",  
+  "I try to settle arguments rather than escalate them.",  
+  "I often interrupt people when they're talking.",  
+  "I find it hard to be patient with others' mistakes.",  
+  "I sometimes get irritated over minor inconveniences.",  
+  "I rarely think about how my actions affect others.",  
+  "I believe it's better to be blunt than polite.",  
+  "I like checking tasks off a list.",  
+  "I feel satisfied after organizing things neatly.",  
+  "I double-check my work for mistakes.",  
+  "I make detailed plans before starting big projects.",  
+  "I prefer to finish one thing properly before starting another.",  
+  "I often lose track of important tasks.",  
+  "I leave things incomplete because I lose interest.",  
+  "I have trouble keeping track of deadlines.",  
+  "I find it hard to stick to routines.",  
+  "I usually just 'wing it' instead of planning.",  
+  "I look forward to social events.",  
+  "I enjoy being in leadership roles.",  
+  "I often get excited about new ideas or plans.",  
+  "I like meeting new people.",  
+  "I feel energized after spending time with others.",  
+  "I often feel drained by social interactions.",  
+  "I avoid situations where I might have to speak up.",  
+  "I usually let others take the lead in group activities.",  
+  "I prefer to stay in the background.",  
+  "I rarely get excited about new opportunities.",  
+  "I recognize when I need to take a break to calm down.",  
+  "I notice when my emotions are starting to spiral.",  
+  "I can admit when stress is affecting my decisions.",  
+  "I try to manage frustration before it builds up.",  
+  "I know when I need time alone to recharge.",  
+  "I often snap at others when I'm upset.",  
+  "I act impulsively when overwhelmed.",  
+  "I have trouble controlling my temper under pressure.",  
+  "I withdraw from people even when I need support.",  
+  "My emotions often feel too big to handle.",  
+  "I enjoy exploring new ideas, even if they are unfamiliar.",  
+  "I like discussing deep or complex topics.",  
+  "I find beauty in things most people overlook.",  
+  "I often think about abstract or philosophical questions.",  
+  "I am curious about how things work.",  
+  "I get bored by deep conversations.",  
+  "I rarely take interest in topics outside my routine.",  
+  "I prefer not to think too deeply about things.",  
+  "I find it hard to appreciate abstract art or ideas.",  
+  "I avoid learning about topics that seem complicated."
+];
+
+const reverseScored = [5,6,7,8,9, 15,16,17,18,19, 25,26,27,28,29, 35,36,37,38,39, 45,46,47,48,49];
+
+const traitDescriptions = {  
+  Congenial: "Congenial people are caring, polite, and considerate. <br> <i>Higher scores</i> suggest you value kindness and making others feel comfortable, usually warm, empathetic and considerate of others' emotions. <br> <i>Lower scorers</i> however, may prioritize logic or personal goals over the emotional needs of others, often coming across as detached/indifferent/overly pragmatic in social settings.",  
+  Thorough: "Thorough individuals are organized, hardworking, and detail-oriented. <br> <i>Higher scores</i> suggest you like structure and completing tasks carefully and systematically, usually highly organized, disciplined, and dependable. <br> <i>Lower scorers</i>, may prefer flexibility over structure, potentially leading to inconsistencies and disorganization in task completion under pressure.",  
+  Vivacious: "Vivacious individuals are enthusiastic, assertive, and outgoing. <br> <i>Higher scores</i> suggest you enjoy social interaction, actively engaged, and comfortable taking initiative, usually energetic, and assertive. <br> <i>Lower scorers</i>, may approach tasks more quietly and prefer a more reserved or cautious style of interaction in communication and action.",  
+  Perturbed: "Perturbed individuals are sensitive to emotional stress and volatility. <br> <i>Higher scores</i> suggest greater emotional reactivity, withdrawal, and anxiety in overwhelming situations. <br> <i>Lower scorers</i> suggest emotional steadiness, and tends to maintain emotional composure even under stress.",  
+  Observance: "Observant people are curious, thoughtful, and appreciate complexity, beauty and sense subtle changes in environment and behavior. <br> <i>Higher scores</i> suggest appreciation in ideas, aesthetics, experiences and deep reflections. <br> <i>Lower scorers</i>, may prefer familiarity and practicality over abstract thinking or exploration."
+};
+
+const traitDetails = {  
+  Congenial: [    
+    { title: "Compassionate Engagement", description: "Actively fosters a nurturing environment." },    
+    { title: "Emotional Prioritization", description: "Considers emotional impacts in decision-making." },    
+    { title: "Social Sensitivity", description: "Attuned to emotional cues from others." },  
+  ],  
+  Thorough: [    
+    { title: "Systematic Organization", description: "Excels at planning and maintaining structure." },    
+    { title: "Industrious Execution", description: "Perseveres through complex tasks methodically." },    
+    { title: "Flexibility vs Rigidity", description: "Adapts structure when necessary without losing direction." },  
+  ],  
+  Vivacious: [    
+    { title: "Assertive Energy", description: "Confidently pursues goals and expresses ideas." },    
+    { title: "Consistent Enthusiasm", description: "Sustains positive momentum even in solitude." },    
+    { title: "Influence on Environment", description: "Brings energy into social or team settings naturally." },  
+  ],  
+  Perturbed: [    
+    { title: "Emotional Volatility", description: "Sensitive to stressors, mood can shift quickly." },    
+    { title: "Withdrawal Response", description: "May withdraw from others under stress, even when support would help." },    
+    { title: "Impulse Management", description: "Difficulty regulating immediate emotional reactions." },  
+  ],  
+  Observance: [    
+    { title: "Curiosity", description: "Enjoys exploring new ideas and experiences." },    
+    { title: "Deep Thinking", description: "Appreciates complex, philosophical, or abstract concepts." },    
+    { title: "Beauty Appreciation", description: "Notices aesthetic or subtle aspects of life others may miss." },  
+  ]
+};
+
+// Generate questions
+function generateQuestions() {  
+  const form = document.getElementById('personalityTest');  
+  questions.forEach((q, index) => {    
+    const div = document.createElement('div');    
+    div.className = "question";    
+    div.innerHTML = `<strong>Q${index+1}:</strong> ${q}<br>      
+    ${[1,2,3,4,5].map(num => `        
+    <label><input type="radio" name="q${index}" value="${num}" required> ${["Strongly Disagree", "Disagree", "Neutral", "Agree", "Strongly Agree"][num-1]}</label>        
+    `).join('')}    
+    `;    
+    form.appendChild(div);  
+  });
+}
+
+// Handle test submission
+document.getElementById('submitTest').addEventListener('click', function() {  
+  calculateResults();
+});
+
+// Calculate and display results
+function calculateResults() {  
+  const form = document.forms['personalityTest'];  
+  let scores = { Congenial: 0, Thorough: 0, Vivacious: 0, Perturbed: 0, Observance: 0 };  
+  let totalQuestions = { Congenial: 0, Thorough: 0, Vivacious: 0, Perturbed: 0, Observance: 0 };
+
+  for (let i = 0; i < 50; i++) {    
+    const traitIndex = Math.floor(i / 10);    
+    const trait = traits[traitIndex];    
+    const selected = form[`q${i}`]?.value;    
+    if (!selected) {      
+      alert('Please answer all questions.');      
+      return;    
+    }    
+    let score = parseInt(selected);    
+    scores[trait] += score;    
+    totalQuestions[trait]++;  
+  }
+
+  let output = "<h2>Your Results:</h2>";  
+	for (const trait of traits) {    
+	const avgScore = (scores[trait] / totalQuestions[trait]).toFixed(2);    
+	output += `      
+	<div class="trait-result">        
+	<h3>${trait}: ${avgScore}/5</h3>      
+	<p>${traitDescriptions[trait]}<br>      
+	</p>      
+	<button onclick="toggleDetails('${trait.toLowerCase()}Details')">Learn More</button>      
+	<div id="${trait.toLowerCase()}Details" style="display:none; margin-top:10px;">        <p><strong>Detailed Breakdown:</strong>	</p>        
+	<ul>          
+	${traitDetails[trait].map(detail => `<li><strong>${detail.title}:</strong> ${detail.description}</li>`).join('')}        
+	</ul>      
+	</div>    
+</div>    
+`;  
+}
+
+document.getElementById('results').innerHTML = output;  
+document.getElementById('results').style.display = 'block';
+}
+
+function toggleDetails(id) {  
+	const el = document.getElementById(id);  
+	if (el.style.display === "none") {    
+	el.style.display = "block";  
+	} else {    
+	el.style.display = "none";  
+}   }
+
+// Generate the questions when the page loads
+generateQuestions();
+
+</script>
+
+</body>
+</html>
