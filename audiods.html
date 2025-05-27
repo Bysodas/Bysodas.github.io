@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Audio Digit Span Test</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      text-align: center;
+      margin-top: 50px;
+    }
+    #digits {
+      font-size: 48px;
+      margin-bottom: 20px;
+    }
+    #startBtn {
+      padding: 10px 20px;
+      font-size: 18px;
+    }
+    #numberPad {
+      display: grid;
+      grid-template-columns: repeat(3, 70px);
+      grid-gap: 10px;
+      justify-content: center;
+      margin-top: 20px;
+    }
+    #numberPad button {
+      width: 70px;
+      height: 70px;
+      font-size: 24px;
+    }
+    #inputField {
+      font-size: 32px;
+      margin-top: 20px;
+      letter-spacing: 10px;
+    }
+    #result {
+      margin-top: 20px;
+      font-size: 24px;
+    }
+    #digitCountSelect {
+      font-size: 16px;
+      padding: 5px;
+      margin-bottom: 20px;
+    }
+    #score {
+      margin-top: 20px;
+      font-size: 20px;
+    }
+    #timer {
+      margin-top: 20px;
+      font-size: 24px;
+      color: red;
+    }
+  </style>
+</head>
+<body>
+  <h1>Audio Digit Span Test</h1>
+  <label for="digitCountSelect">Select number of digits:</label>
+  <select id="digitCountSelect">
+    <option value="4">4</option>
+    <option value="5">5</option>
+    <option value="6">6</option>
+    <option value="7">7</option>
+    <option value="8">8</option>
+    <option value="9">9</option>
+    <option value="10">10</option>
+    <option value="11">11</option>
+    <option value="12">12</option>
+  </select>
+
+  <div id="digits"></div>
+  <button id="startBtn">Start Test</button>
+
+  <div id="inputField"></div>
+  <div id="numberPad"></div>
+  <div id="result"></div>
+  <div id="score">Score: 0</div>
+  <div id="timer">Time Left: 2:00</div>
+
+  <script>
+    const startBtn = document.getElementById('startBtn');
+    const inputField = document.getElementById('inputField');
+    const numberPad = document.getElementById('numberPad');
+    const resultDisplay = document.getElementById('result');
+    const digitCountSelect = document.getElementById('digitCountSelect');
+    const scoreDisplay = document.getElementById('score');
+    const timerDisplay = document.getElementById('timer');
+
+    let correctDigits = [];
+    let userInput = [];
+    let score = 0;
+    let attemptCount = 0;
+    const maxAttempts = 4;
+    let timer;
+    let timeLeft = 120;
+    let testActive = false;
+    let inputEnabled = false;
+    let currentStreak = 0;
+
+    let currentDigitCount = parseInt(localStorage.getItem('audioDigitLevel')) || 4;
+
+    function updateDigitOptions() {
+      const options = digitCountSelect.options;
+      for (let i = 0; i < options.length; i++) {
+        const val = parseInt(options[i].value);
+        options[i].disabled = val > currentDigitCount;
+      }
+      digitCountSelect.value = currentDigitCount;
+    }
+
+    function unlockNextLevel() {
+      if (currentDigitCount < 12) {
+        currentDigitCount++;
+        currentStreak = 0;
+        localStorage.setItem('audioDigitLevel', currentDigitCount);
+        updateDigitOptions();
+      }
+    }
+
+    function generateDigits(count) {
+      const digits = [];
+      let lastDigit = null;
+      for (let i = 0; i < count; i++) {
+        let newDigit;
+        do {
+          newDigit = Math.floor(Math.random() * 10);
+        } while (newDigit === lastDigit);
+        digits.push(newDigit);
+        lastDigit = newDigit;
+      }
+      return digits;
+    }
+
+    function speakDigits(digits, callback) {
+      let index = 0;
+      inputEnabled = false;
+      function speakNext() {
+        if (index < digits.length) {
+          const utterance = new SpeechSynthesisUtterance(digits[index].toString());
+          utterance.onend = () => {
+            index++;
+            setTimeout(speakNext, 200);
+          };
+          speechSynthesis.speak(utterance);
+        } else {
+          startBtn.disabled = false;
+          inputEnabled = true;
+          if (callback) callback();
+        }
+      }
+      startBtn.disabled = true;
+      speakNext();
+    }
+
+    function renderNumberPad() {
+      numberPad.innerHTML = '';
+      const layout = [1, 2, 3, 4, 5, 6, 7, 8, 9, 'Clear', 0];
+      layout.forEach(item => {
+        const btn = document.createElement('button');
+        btn.textContent = item;
+        btn.onclick = () => {
+          if (!testActive || !inputEnabled) return;
+          if (item === 'Clear') {
+            userInput = [];
+            inputField.textContent = '';
+            resultDisplay.textContent = '';
+          } else {
+            handleNumberClick(item);
+          }
+        };
+        numberPad.appendChild(btn);
+      });
+    }
+
+    function handleNumberClick(num) {
+      if (userInput.length < correctDigits.length) {
+        userInput.push(num);
+        inputField.textContent = userInput.join(' ');
+
+        if (userInput.length === correctDigits.length) {
+          checkAnswer();
+        }
+      }
+    }
+
+    function replayDigits() {
+      if (attemptCount < maxAttempts) {
+        speakDigits(correctDigits);
+      } else {
+        resultDisplay.textContent = 'Maximum attempts reached. Please start a new test.';
+      }
+    }
+
+    function checkAnswer() {
+      const isCorrect = userInput.join('') === correctDigits.join('');
+      if (isCorrect) {
+        resultDisplay.textContent = 'Correct!';
+        score++;
+        currentStreak++;
+        scoreDisplay.textContent = `Score: ${score}`;
+        attemptCount = 0;
+        if (currentStreak >= 3) {
+          resultDisplay.textContent += ' You unlocked the next level!';
+          unlockNextLevel();
+        }
+      } else {
+        attemptCount++;
+        currentStreak = 0;
+        if (attemptCount < maxAttempts) {
+          resultDisplay.textContent = `Incorrect. Attempt ${attemptCount} of ${maxAttempts}. Try again.`;
+          userInput = [];
+          inputField.textContent = '';
+          replayDigits();
+        } else {
+          resultDisplay.textContent = `Incorrect. Maximum attempts (${maxAttempts}) reached. Answer was: ${correctDigits.join(' ')}.`;
+          startBtn.disabled = false;
+        }
+      }
+    }
+
+    function startTimer(digitCount) {
+      timeLeft = digitCount >= 9 ? 180 : 120;
+      timerDisplay.textContent = `Time Left: ${Math.floor(timeLeft / 60)}:${timeLeft % 60 < 10 ? '0' + (timeLeft % 60) : timeLeft % 60}`;
+      clearInterval(timer);
+      timer = setInterval(() => {
+        timeLeft--;
+        const minutes = Math.floor(timeLeft / 60);
+        const seconds = timeLeft % 60;
+        timerDisplay.textContent = `Time Left: ${minutes}:${seconds < 10 ? '0' + seconds : seconds}`;
+
+        if (timeLeft <= 0) {
+          clearInterval(timer);
+          timerDisplay.textContent = `Time's up! Final Score: ${score}`;
+          testActive = false;
+          inputField.textContent = '';
+          numberPad.innerHTML = '';
+          resultDisplay.textContent = '';
+        }
+      }, 1000);
+    }
+
+    startBtn.addEventListener('click', () => {
+      if (!testActive) {
+        score = 0;
+        scoreDisplay.textContent = `Score: ${score}`;
+        updateDigitOptions();
+        renderNumberPad();
+        const digitCount = parseInt(digitCountSelect.value);
+        startTimer(digitCount);
+        testActive = true;
+      }
+      const digitCount = parseInt(digitCountSelect.value);
+      if (digitCount > currentDigitCount) {
+        alert(`You need 3 correct in a row at level ${currentDigitCount} to unlock ${digitCount}.`);
+        digitCountSelect.value = currentDigitCount;
+        return;
+      }
+      correctDigits = generateDigits(digitCount);
+      userInput = [];
+      inputField.textContent = '';
+      resultDisplay.textContent = '';
+      attemptCount = 0;
+      speakDigits(correctDigits);
+    });
+
+    updateDigitOptions();
+    renderNumberPad();
+  </script>
+</body>
+</html>
